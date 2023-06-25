@@ -1,9 +1,12 @@
 package com.qualityplus.minions.api.handler;
 
-import com.qualityplus.minions.base.minions.entity.MinionStorageState;
+import org.bukkit.inventory.ItemStack;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.List;
 
 public interface StorageHandler {
-    MinionStorageState getMinionStorageState();
+    public boolean canAdd(List<ItemStack> itemStacks);
+    public void addItems(final List<ItemStack> items);
+    public List<ItemStack> pickUpAll();
+    public List<ItemStack> pickUpLast();
 }

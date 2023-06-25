@@ -1,25 +1,32 @@
 package com.qualityplus.minions.base.handler;
 
-import com.qualityplus.assistant.api.gui.FakeInventory;
-import com.qualityplus.minions.TheMinions;
 import com.qualityplus.minions.api.handler.StorageHandler;
-import com.qualityplus.minions.api.minion.MinionEntity;
-import com.qualityplus.minions.base.minions.entity.MinionStorageState;
-import com.qualityplus.minions.base.minions.entity.getter.MinionItemsGetter;
-import com.qualityplus.minions.base.minions.minion.Minion;
-import lombok.AllArgsConstructor;
-import org.bukkit.Bukkit;
+import com.qualityplus.minions.api.storage.MinionStorage;
+import org.bukkit.inventory.ItemStack;
 
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import java.util.ArrayList;
+import java.util.List;
 
-@AllArgsConstructor
-public final class StorageHandlerImpl implements StorageHandler, MinionItemsGetter {
-    private final MinionEntity minionEntity;
-    private final Minion minion;
+public final class StorageHandlerImpl implements StorageHandler {
+    private final List<MinionStorage> storages = new ArrayList<>();
 
     @Override
-    public MinionStorageState getMinionStorageState() {
-        return getMinionState(minionEntity.getState().getFakeInventory(), minionEntity.getMinionUniqueId(), minion);
+    public void addItems(List<ItemStack> items) {
+
+    }
+
+    @Override
+    public boolean canAdd(List<ItemStack> itemStacks) {
+        return false;
+    }
+
+    @Override
+    public List<ItemStack> pickUpAll() {
+        return null;
+    }
+
+    @Override
+    public List<ItemStack> pickUpLast() {
+        return null;
     }
 }

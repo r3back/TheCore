@@ -11,6 +11,8 @@ import com.qualityplus.collections.base.collection.registry.CollectionsRegistry;
 import com.qualityplus.assistant.lib.eu.okaeri.platform.core.annotation.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.Ageable;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -20,6 +22,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.FurnaceExtractEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
@@ -38,7 +41,7 @@ public final class CollectionsMainListener implements Listener {
 
         Optional<Collection> collection = CollectionsRegistry.getByItem(pickUpMaterial.parseItem());
 
-        if(!collection.isPresent()) return;
+        if (!collection.isPresent()) return;
 
         collectionsService.addXp(e.getPlayer(), collection.get(), e.getItemAmount());
     }
@@ -57,7 +60,7 @@ public final class CollectionsMainListener implements Listener {
 
         Optional<Collection> collection = CollectionsRegistry.getByItem(pickUpItem);
 
-        if(!collection.isPresent()) return;
+        if (!collection.isPresent()) return;
 
         antiExploitService.setPlayerTimer(player, -1);
 
@@ -69,14 +72,24 @@ public final class CollectionsMainListener implements Listener {
         antiExploitService.addMetadata(e.getItemDrop());
     }
 
+
+    @EventHandler(ignoreCancelled = true)
+    public void oPlaceBlock(BlockPlaceEvent e) {
+        antiExploitService.addMetadata(e.getBlock());
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onBreakInventoryHolders(BlockBreakEvent e) {
         Player player = e.getPlayer();
-        if(antiExploitService.hasMetadata(e.getBlock())){
+
+        final Block block = e.getBlock();
+        if (block.getBlockData() instanceof Ageable ageable && ageable.getAge() == ageable.getMaximumAge()) {
+            addMetadataToNearEntities(player.getLocation(), 5);
+        } else if (antiExploitService.hasMetadata(block)) {
             addMetadataToNearEntities(player.getLocation(), 5);
         }
 
-        if (e.getBlock().getState() instanceof org.bukkit.inventory.InventoryHolder) {
+        if (block.getState() instanceof org.bukkit.inventory.InventoryHolder) {
             addMetadataToNearEntities(player.getLocation(), 5);
             antiExploitService.setPlayerTimer(player, System.currentTimeMillis() + 140L);
         }
@@ -112,11 +125,11 @@ public final class CollectionsMainListener implements Listener {
                 .forEach(antiExploitService::addMetadata)), 1);
     }
 
-    private boolean isOnTimer(Player player, Cancellable cancellable){
-        if(System.currentTimeMillis() < antiExploitService.getPlayerTimer(player)){
+    private boolean isOnTimer(Player player, Cancellable cancellable) {
+        if (System.currentTimeMillis() < antiExploitService.getPlayerTimer(player)) {
             cancellable.setCancelled(true);
             return true;
-        }else
+        } else
             return false;
     }
 }

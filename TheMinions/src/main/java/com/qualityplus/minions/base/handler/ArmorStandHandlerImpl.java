@@ -26,20 +26,9 @@ public final class ArmorStandHandlerImpl implements ArmorStandHandler {
 
     @Override
     public CompletableFuture<ArmorStand> createEntity(MinionEntity minionEntity, Location spawn) {
-        CompletableFuture<ArmorStand> future = new CompletableFuture<>();
-
-        this.spawn = spawn;
-
-        Bukkit.getScheduler().runTask(TheMinions.getInstance(), () -> {
-            this.entity = ArmorStandUtil.createDefault(spawn);
-
-            MinionArmorStandTracker.registerNewEntity(entity, minionEntity);
-
-            future.complete(entity);
-        });
-
-        return future;
+        return null;
     }
+
 
     @Override
     public boolean entityIsValid() {
@@ -73,42 +62,19 @@ public final class ArmorStandHandlerImpl implements ArmorStandHandler {
 
     @Override
     public void teleportToSpawn() {
-        if(!entityIsValid()) return;
+        if (!entityIsValid()) return;
 
         entity.teleport(spawn);
     }
 
     @Override
-    public void updateDisplayName(MinionState minionState) {
-        MinionStatus status = minionState.getStatus();
-        MinionStatus oldStatus = minionState.getOldStatus();
+    public void updateDisplayName(final MinionState minionState) {
 
-        if(status == null || (oldStatus != null && oldStatus.equals(status)))
-            return;
-
-        List<RandomMessage> randomMessages = TheMinions.getApi().getConfigFiles().config().messages.getOrDefault(status, null);
-
-        RandomMessage randomSelector = new RandomSelector<>(randomMessages).getRandomOrUniqueItem();
-
-        List<String> msg = Optional.ofNullable(randomSelector).map(RandomMessage::getMessage).orElse(Collections.singletonList("       "));
-
-        //TODO check this with a future or boolean
-        Bukkit.getScheduler().runTask(TheMinions.getInstance(), () -> {
-
-            if(hologram == null){
-                hologram = TheHologram.create(msg, spawn.clone());
-            }else{
-                hologram.rename(msg);
-            }
-        });
-
-
-        minionState.setOldStatus(status);
     }
 
     @Override
     public void manipulateEntity(Consumer<ArmorStand> consumer) {
-        if(!entityIsValid()) return;
+        if (!entityIsValid()) return;
 
         consumer.accept(entity);
     }

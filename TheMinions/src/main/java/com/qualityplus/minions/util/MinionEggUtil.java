@@ -31,30 +31,30 @@ public class MinionEggUtil {
     private final String PET_ID_KEY = "PET_ID_KEY";
     private final String PET_UNIQUE_ID_KEY = "PET_UUID_KEY";
 
-    public Optional<MinionData> dataFromEgg(ItemStack itemStack){
+    public Optional<MinionData> dataFromEgg(ItemStack itemStack) {
 
-        if(BukkitItemUtil.isNull(itemStack)) return Optional.empty();
+        if (BukkitItemUtil.isNull(itemStack)) return Optional.empty();
 
         NBTItem nbtItem = new NBTItem(itemStack);
 
-        if(!nbtItem.hasKey(PET_ID_KEY) || !nbtItem.hasKey(PET_UNIQUE_ID_KEY)) return Optional.empty();
+        if (!nbtItem.hasKey(PET_ID_KEY) || !nbtItem.hasKey(PET_UNIQUE_ID_KEY)) return Optional.empty();
 
         Minion pet = Minions.getByID(nbtItem.getString(PET_ID_KEY));
 
-        if(pet == null) return Optional.empty();
+        if (pet == null) return Optional.empty();
 
         UUID uuid = UUID.fromString(nbtItem.getString(PET_UNIQUE_ID_KEY));
 
         return TheMinions.getApi().getMinionsService().getData(uuid);
     }
 
-    public Optional<ItemStack> createNewEgg(Player player, Item item, Minion pet){
+    public Optional<ItemStack> createNewEgg(Player player, Item item, Minion pet) {
 
-        UUID petUuid = UUID.randomUUID();
+        final UUID petUuid = UUID.randomUUID();
 
-        MinionData petData = new MinionData(petUuid, player.getUniqueId(), 1, pet.getId(), 0, new HashMap<>(), null, null, null, null, null, null);
+        final MinionData petData = new MinionData(petUuid, player.getUniqueId(), 1, pet.getId(), 0, new HashMap<>(), null, null, null, null, null, null);
 
-        MinionCreateEvent petCreateEvent = new MinionCreateEvent(petData);
+        final MinionCreateEvent petCreateEvent = new MinionCreateEvent(petData);
 
         Bukkit.getServer().getPluginManager().callEvent(petCreateEvent);
 
@@ -62,48 +62,48 @@ public class MinionEggUtil {
 
     }
 
-    public Optional<ItemStack> createFromExistent(Item item, UUID petUuid){
+    public Optional<ItemStack> createFromExistent(Item item, UUID petUuid) {
         Optional<MinionData> petData = TheMinions.getApi().getMinionsService().getData(petUuid);
 
-        if(!petData.isPresent()) return Optional.empty();
+        if (!petData.isPresent()) return Optional.empty();
 
         Optional<Minion> pet = Optional.ofNullable(Minions.getByID(petData.get().getMinionId()));
 
-        if(!pet.isPresent()) return Optional.empty();
+        if (!pet.isPresent()) return Optional.empty();
 
         return getItemStack(item, pet.get(), petUuid);
     }
 
 
-    private Optional<ItemStack> getItemStack(Item item, Minion pet, MinionData petData){
+    private Optional<ItemStack> getItemStack(Item item, Minion pet, MinionData petData) {
         return getItemStack(item, pet, petData.getUuid());
     }
 
-    private Optional<ItemStack> getItemStack(Item item, Minion minion, UUID petUuid){
-        int level = TheMinions.getApi().getMinionsService()
+    private Optional<ItemStack> getItemStack(final Item item, final Minion minion, final UUID petUuid) {
+        final int level = TheMinions.getApi().getMinionsService()
                 .getData(petUuid)
                 .map(MinionData::getLevel)
                 .orElse(1);
 
-        Optional<MinionSkin> minionSkin = minion.getSkin(level);
+        final Optional<MinionSkin> minionSkin = minion.getSkin(level);
 
-        List<IPlaceholder> placeholderList = MinionPlaceholderUtil.getMinionPlaceholders(minion)
+        final List<IPlaceholder> placeholderList = MinionPlaceholderUtil.getMinionPlaceholders(minion)
                 .with(MinionPlaceholderUtil.getMinionPlaceholders(petUuid))
                 .get();
 
-        Item item1 = ItemBuilder.of(XMaterial.PLAYER_HEAD, 1)
+        final Item item1 = ItemBuilder.of(XMaterial.PLAYER_HEAD, 1)
                 .displayName(StringUtils.processMulti(item.getDisplayName(), placeholderList))
                 .lore(StringUtils.processMulti(item.getLore(), placeholderList))
                 .amount(1)
                 .build();
 
-        ItemStack eggIcon = minionSkin
+        final ItemStack eggIcon = minionSkin
                 .map(MinionSkin::getHelmet)
                 .orElse(FastStack.fast(XMaterial.PLAYER_HEAD));
 
-        ItemStack itemStack = ItemStackUtils.makeItem(item1, eggIcon.clone());
+        final ItemStack itemStack = ItemStackUtils.makeItem(item1, eggIcon.clone());
 
-        NBTItem nbtItem = new NBTItem(itemStack);
+        final NBTItem nbtItem = new NBTItem(itemStack);
 
         nbtItem.setString(PET_ID_KEY, minion.getId());
         nbtItem.setString(PET_UNIQUE_ID_KEY, petUuid.toString());

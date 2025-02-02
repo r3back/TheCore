@@ -32,6 +32,7 @@ public final class TransactionGatewayImpl implements TransactionGateway {
 
     @Override
     public Optional<TrxResponse> handle(final BankData bankData, final BankTransaction transaction, final boolean sendMessages) {
+
         if (bankData == null) {
             return Optional.empty();
         }
@@ -59,7 +60,7 @@ public final class TransactionGatewayImpl implements TransactionGateway {
     }
 
 
-    private Optional<TrxResponse> handleSet(final TrxRequest request){
+    private Optional<TrxResponse> handleSet(final TrxRequest request) {
         final BankData data = request.getBankData();
 
         final double amount = request.getTransaction().getAmount();
@@ -72,7 +73,7 @@ public final class TransactionGatewayImpl implements TransactionGateway {
                         .build());
     }
 
-    private Optional<TrxResponse> handleDeposit(final TrxRequest request){
+    private Optional<TrxResponse> handleDeposit(final TrxRequest request) {
         try {
             final TrxResponse response = this.depositHandler.handle(request);
 
@@ -97,7 +98,7 @@ public final class TransactionGatewayImpl implements TransactionGateway {
         }
     }
 
-    private Optional<TrxResponse> handleWithdraw(final TrxRequest request){
+    private Optional<TrxResponse> handleWithdraw(final TrxRequest request) {
         try {
             final TrxResponse response = this.withdrawHandler.handle(request);
 

@@ -1,10 +1,10 @@
 package com.qualityplus.bank.base.gui.withdraw;
 
-import com.qualityplus.assistant.api.event.SignCompletedEvent;
-import com.qualityplus.assistant.api.sign.SignGUI;
 import com.qualityplus.assistant.api.util.IPlaceholder;
-import com.qualityplus.assistant.base.dependency.ProtocolLibDependency;
-import com.qualityplus.assistant.inventory.SignGUIImpl;
+import com.qualityplus.assistant.lib.de.rapha149.signgui.SignGUI;
+import com.qualityplus.assistant.lib.de.rapha149.signgui.SignGUIFinishHandler;
+import com.qualityplus.assistant.lib.de.rapha149.signgui.SignGUIResult;
+import com.qualityplus.assistant.lib.de.rapha149.signgui.exception.SignGUIVersionException;
 import com.qualityplus.assistant.util.inventory.InventoryUtils;
 import com.qualityplus.assistant.util.placeholder.Placeholder;
 import com.qualityplus.bank.api.box.Box;
@@ -14,13 +14,18 @@ import com.qualityplus.bank.base.gui.main.BankInterfaceGUI;
 import com.qualityplus.bank.base.gui.main.BankInterfaceGUI.GUIType;
 import com.qualityplus.bank.persistence.data.BankData;
 import com.qualityplus.bank.persistence.data.BankTransaction;
+import com.qualityplus.bank.persistence.data.TransactionCaller;
 import org.bukkit.Bukkit;
+import org.bukkit.DyeColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,7 +42,7 @@ public final class BankWithdrawGUI extends BankGUI {
         this.type = type;
     }
 
-    private BankData getData(){
+    private BankData getData() {
         return box.service().getData(uuid).orElse(new BankData());
     }
 
@@ -58,7 +63,7 @@ public final class BankWithdrawGUI extends BankGUI {
         return inventory;
     }
 
-    private List<IPlaceholder> getPlaceholders(BankData bankData){
+    private List<IPlaceholder> getPlaceholders(BankData bankData) {
         return Arrays.asList(
                 new Placeholder("bank_balance", bankData.getMoney()),
                 new Placeholder("bank_balance_custom_percentage", getCustomPercentage(bankData)),
@@ -66,11 +71,11 @@ public final class BankWithdrawGUI extends BankGUI {
         );
     }
 
-    private double getCustomPercentage(BankData bankData){
+    private double getCustomPercentage(BankData bankData) {
         return (config.getCustomPercentage() * bankData.getMoney()) / 100;
     }
 
-    private double getHalf(BankData bankData){
+    private double getHalf(BankData bankData) {
         return Math.max(0, bankData.getMoney() / 2);
     }
 
@@ -82,50 +87,58 @@ public final class BankWithdrawGUI extends BankGUI {
 
         e.setCancelled(true);
 
-        if(!getTarget(e).equals(ClickTarget.INSIDE)) return;
+        if (!getTarget(e).equals(ClickTarget.INSIDE)) return;
 
         if (isItem(slot, config.getCloseGUI())) {
             e.setCancelled(true);
             player.closeInventory();
-        }else if(isItem(slot, config.getGoBack())){
+        } else if (isItem(slot, config.getGoBack())) {
             player.openInventory(new BankInterfaceGUI(box, player, type).getInventory());
-        }else if(isItem(slot, config.getWithdrawAll())){
-            box.service().handleTransaction(player, new BankTransaction(getData().getMoney(), TransactionType.WITHDRAW, type), true);
+        } else if (isItem(slot, config.getWithdrawAll())) {
+            box.service().handleTransaction(player, new BankTransaction(getData().getMoney(), TransactionType.WITHDRAW, type, TransactionCaller.PLAYER), true);
             player.openInventory(new BankWithdrawGUI(box, player, type).getInventory());
-        }else if(isItem(slot, config.getWithdrawHalf())){
-            box.service().handleTransaction(player, new BankTransaction(getHalf(getData()), TransactionType.WITHDRAW, type), true);
+        } else if (isItem(slot, config.getWithdrawHalf())) {
+            box.service().handleTransaction(player, new BankTransaction(getHalf(getData()), TransactionType.WITHDRAW, type, TransactionCaller.PLAYER), true);
             player.openInventory(new BankWithdrawGUI(box, player, type).getInventory());
-        }else if(isItem(slot, config.getWithDrawCustomPercentage())){
-            box.service().handleTransaction(player, new BankTransaction(getCustomPercentage(getData()), TransactionType.WITHDRAW, type), true);
+        } else if (isItem(slot, config.getWithDrawCustomPercentage())) {
+            box.service().handleTransaction(player, new BankTransaction(getCustomPercentage(getData()), TransactionType.WITHDRAW, type, TransactionCaller.PLAYER), true);
             player.openInventory(new BankWithdrawGUI(box, player, type).getInventory());
-        }else if(isItem(slot, config.getWithdrawAmount())){
-            if(ProtocolLibDependency.isProtocolLib()){
-                SignGUIImpl.builder()
-                        .action(this::handleWithdraw)
-                        .withLines(box.files().messages().bankMessages.enterAmountToWithdraw)
-                        .uuid(player.getUniqueId())
-                        .plugin(box.plugin())
-                        .build()
-                        .open();
-            }else{
-                box.plugin().getLogger().warning("You need to install ProtocolLib to use Sign GUIS!");
-            }
+        } else if (isItem(slot, config.getWithdrawAmount())) {
+            final Location location = player.getLocation().clone().add(0, 10, 0);
+            final SignGUIFinishHandler signGUIFinishHandler = (player1, signGUIResult) -> {
+                Bukkit.getScheduler().runTaskLater(this.box.plugin(), () -> {
+                    this.handleWithdraw(player1, signGUIResult);
+                }, 5);
+                return Collections.emptyList();
+            };
+            Bukkit.getScheduler().runTaskLater(this.box.plugin(), () -> {
+                try {
+                    final com.qualityplus.assistant.lib.de.rapha149.signgui.SignGUI signGUI = SignGUI.builder().
+                            setLocation(location).
+                            setColor(DyeColor.BLACK).
+                            setType(Material.OAK_SIGN).
+                            setHandler(signGUIFinishHandler).setGlow(false).
+                            setLines(box.files().messages().bankMessages.enterAmountToWithdraw.toArray(new String[0])).
+                            build();
+                    signGUI.open(player);
+                } catch (SignGUIVersionException ex) {
+                    ex.printStackTrace();
+                }
+            }, 5);
 
         }
     }
 
-    private void handleWithdraw(SignCompletedEvent event){
-        final Player player = event.getPlayer();
-
+    private void handleWithdraw(final Player player, final SignGUIResult event) {
         int value = 0;
 
         try {
-            value = Integer.parseInt(event.getLines().get(0));
+            value = Integer.parseInt(event.getLine(0));
         } catch (final NumberFormatException ignored) {
 
         }
 
-        box.service().handleTransaction(player, new BankTransaction(Math.max(0, value), TransactionType.WITHDRAW, type), true);
+        box.service().handleTransaction(player, new BankTransaction(Math.max(0, value), TransactionType.WITHDRAW, type, TransactionCaller.PLAYER), true);
 
         Bukkit.getScheduler().runTaskLater(box.plugin(), () -> player.openInventory(new BankWithdrawGUI(box, player, type).getInventory()), 3);
     }
